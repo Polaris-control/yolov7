@@ -1,0 +1,59 @@
+# EMDS-7 微藻检测数据集配置（仅使用现存 6 类）
+
+train: ./EMDS7_min/images/train
+val: ./EMDS7_min/images/val
+test: ./EMDS7_min/images/test
+
+# 类别数量和名称
+nc: 6
+names:
+  0: Oscillatoria
+  1: Microcystis
+  2: sphaerocystis
+  3: tribonema
+  4: brachionus
+  5: Ankistrodesmus
+
+# 数据增强配置
+augment: 
+  hsv_h: 0.015
+  hsv_s: 0.7
+  hsv_v: 0.4
+  degrees: 5.0
+  translate: 0.1
+  scale: 0.5
+  shear: 0.0
+  perspective: 0.0005
+  flipud: 0.0
+  fliplr: 0.5
+  mosaic: 1.0
+  mixup: 0.0
+
+# 锚框配置
+anchors:
+  - [12, 16, 19, 36, 40, 28]
+  - [36, 75, 76, 55, 72, 146]
+  - [142, 110, 192, 243, 459, 401]
+
+# 训练超参数
+hyperparams:
+  lr0: 0.01
+  lrf: 0.1
+  momentum: 0.937
+  weight_decay: 0.0005
+  warmup_epochs: 3
+  warmup_momentum: 0.8
+  warmup_bias_lr: 0.1
+  box: 0.05
+  cls: 0.5
+  cls_pw: 1.0
+  obj: 1.0
+  obj_pw: 1.0
+  iou_t: 0.20
+  anchor_t: 4.0
+  fl_gamma: 0.0
+
+# 验证配置
+validation_config:
+  conf_thres: 0.001
+  iou_thres: 0.65
