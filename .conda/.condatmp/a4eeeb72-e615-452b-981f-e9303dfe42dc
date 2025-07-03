@@ -1,0 +1,13 @@
+prefix=c:/Users/20763/OneDrive/Desktop/基于改进YOLOv7的微藻轻量级检测方法/.conda/Library
+exec_prefix=c:/Users/20763/OneDrive/Desktop/基于改进YOLOv7的微藻轻量级检测方法/.conda/Library
+libdir=c:/Users/20763/OneDrive/Desktop/基于改进YOLOv7的微藻轻量级检测方法/.conda/Library/lib
+sharedlibdir=c:/Users/20763/OneDrive/Desktop/基于改进YOLOv7的微藻轻量级检测方法/.conda/Library/lib
+includedir=c:/Users/20763/OneDrive/Desktop/基于改进YOLOv7的微藻轻量级检测方法/.conda/Library/include
+
+Name: zlib
+Description: zlib compression library
+Version: 1.2.13
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lz
+Cflags: -I${includedir}
