@@ -8,26 +8,24 @@
 
 ```
 基于改进YOLOv7的微藻轻量级检测方法/
-├── yolov7/                    # YOLOv7 核心代码
+├── yolov7/                    # YOLOv7 主代码（含自定义模块）
 │   ├── models/
-│   │   ├── common.py         # 包含 GhostNetBackbone, CBAM, DSConv
-│   │   ├── ghostnet.py       # GhostNet 实现
-│   │   └── yolo.py           # YOLO 模型定义
+│   │   ├── common.py         # GhostNetBackbone, CBAM, DSConv 等自定义模块
+│   │   ├── ghostnet.py       # GhostNet 轻量主干实现
+│   │   └── yolo.py           # YOLO 检测头与主结构
 │   ├── data/
-│   │   └── emds7_min.yaml    # EMDS7_min 数据集配置
-│   └── utils/                # 工具函数
-├── EMDS7_min/                # 数据集目录
-│   ├── images/
-│   │   ├── train/           # 训练图片
-│   │   ├── val/             # 验证图片
-│   │   └── test/            # 测试图片
-│   └── labels_txt/
-│       ├── train/           # 训练标签
-│       ├── val/             # 验证标签
-│       └── test/            # 测试标签
-├── test_emds7.py            # 完整测试脚本
-├── test_emds7_simple.py     # 简化测试脚本
-└── TESTING_GUIDE.md         # 本指南
+│   │   └── emds7_min.yaml    # 数据集配置
+│   ├── utils/                # 工具函数与数据增强
+│   ├── train.py              # 官方训练脚本
+│   ├── test.py               # 官方测试脚本
+│   └── detect.py             # 推理脚本
+├── EMDS7_min/                # 微藻数据集
+│   ├── images/               # 图片（train/val/test）
+│   └── labels/               # 标签（YOLO格式，train/val/test）
+├── train_emds7.py            # 定制化训练脚本
+├── test_emds7_final.py       # 定制化测试脚本
+├── README.md                 # 项目说明（本文件）
+└── runs/                     # 训练与测试输出
 ```
 
 ## 改进的模型组件
@@ -140,7 +138,7 @@ EMDS7_min/
 │   ├── train/     # 训练图片
 │   ├── val/       # 验证图片
 │   └── test/      # 测试图片
-└── labels_txt/
+└── labels/
     ├── train/     # 训练标签 (YOLO格式)
     ├── val/       # 验证标签
     └── test/      # 测试标签
@@ -169,15 +167,7 @@ EMDS7_min 数据集测试结果
           brachionus        225         75      0.834      0.800      0.825      0.432
        Ankistrodesmus        225         50      0.856      0.820      0.843      0.456
 
-速度: 12.3/2.1/14.4 ms 推理/NMS/总计 per 640x640 图片 at batch-size 16
-```
 
-### 保存的文件
-- `runs/test_emds7/` - 测试结果目录
-  - `confusion_matrix.png` - 混淆矩阵
-  - `test_batch0_labels.jpg` - 真实标签可视化
-  - `test_batch0_pred.jpg` - 预测结果可视化
-  - `labels/` - 预测标签文件 (如果使用 --save-txt)
 
 
 
