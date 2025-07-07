@@ -14,6 +14,7 @@ from utils.torch_utils import time_synchronized, fuse_conv_and_bn, model_info, s
     select_device, copy_attr
 from utils.loss import SigmoidBin
 from models.common import CBAM
+from .common import C3
 
 try:
     import thop  # for FLOPS computation
@@ -237,7 +238,7 @@ class IKeypoint(nn.Module):
                 self.m_kpt = nn.ModuleList(
                             nn.Sequential(DWConv(x, x, k=3), Conv(x,x),
                                           DWConv(x, x, k=3), Conv(x, x),
-                                          DWConv(x, x, k=3), Conv(x,x),
+                                          DWConv(x, x, k=3), Conv(x, x),
                                           DWConv(x, x, k=3), Conv(x, x),
                                           DWConv(x, x, k=3), Conv(x, x),
                                           DWConv(x, x, k=3), nn.Conv2d(x, self.no_kpt * self.na, 1)) for x in ch)
@@ -507,9 +508,11 @@ class IBin(nn.Module):
 
 
 class Model(nn.Module):
-    def __init__(self, cfg='yolor-csp-c.yaml', ch=3, nc=None, anchors=None):  # model, input channels, number of classes
+    def __init__(self, cfg='yolor-csp-c.yaml', ch=3, nc=None, anchors=None, hyp=None):  # model, input channels, number of classes
         super(Model, self).__init__()
         self.traced = False
+        self.hyp = hyp  # 保存超参数
+        self.gr = 1.0  # iou loss ratio (obj_loss = 1.0 or iou)
         if isinstance(cfg, dict):
             self.yaml = cfg  # model dict
         else:  # is *.yaml
@@ -609,7 +612,7 @@ class Model(nn.Module):
                 self.traced=False
 
             if self.traced:
-                if isinstance(m, Detect) or isinstance(m, IDetect) or isinstance(m, IAuxDetect) or isinstance(m, IKeypoint):
+                if isinstance(m, Detect) or isinstance(m, IDetect) or isinstance(m, IAuxDetect) or isinstance(m, IBin):
                     break
 
             if profile:
@@ -740,8 +743,9 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
     na = (len(anchors[0]) // 2) if isinstance(anchors, list) else anchors  # number of anchors
     no = na * (nc + 5)  # number of outputs = anchors * (classes + 5)
 
-    layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
-    for i, (f, n, m, args) in enumerate(d['backbone'] + d['head']):  # from, number, module, args
+    layers = d['model'] if 'model' in d else d['backbone'] + d['head']
+    layers_parsed = []
+    for i, (f, n, m, args) in enumerate(layers):  # from, number, module, args
         m = eval(m) if isinstance(m, str) else m  # eval strings
         for j, a in enumerate(args):
             try:
@@ -752,7 +756,7 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
         n = max(round(n * gd), 1) if n > 1 else n  # depth gain
         if m in [nn.Conv2d, Conv, RobustConv, RobustConv2, DWConv, GhostConv, RepConv, RepConv_OREPA, DownC, 
                  SPP, SPPF, SPPCSPC, GhostSPPCSPC, MixConv2d, Focus, Stem, GhostStem, CrossConv, 
-                 Bottleneck, BottleneckCSPA, BottleneckCSPB, BottleneckCSPC, 
+                 Bottleneck, C3, BottleneckCSPA, BottleneckCSPB, BottleneckCSPC, 
                  RepBottleneck, RepBottleneckCSPA, RepBottleneckCSPB, RepBottleneckCSPC,  
                  Res, ResCSPA, ResCSPB, ResCSPC, 
                  RepRes, RepResCSPA, RepResCSPB, RepResCSPC, 
@@ -810,12 +814,26 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
         np = sum([x.numel() for x in m_.parameters()])  # number params
         m_.i, m_.f, m_.type, m_.np = i, f, t, np  # attach index, 'from' index, type, number params
         logger.info('%3s%18s%3s%10.0f  %-40s%-30s' % (i, f, n, np, t, args))  # print
-        save.extend(x % i for x in ([f] if isinstance(f, int) else f) if x != -1)  # append to savelist
-        layers.append(m_)
+        layers_parsed.append(m_)
         if i == 0:
             ch = []
         ch.append(c2)
-    return nn.Sequential(*layers), sorted(save)
+    # 返回所有需要保存的层索引（包括检测头层和所有被引用的层）
+    save_layers = set()
+    # 添加检测头层
+    for i, layer in enumerate(layers_parsed):
+        if isinstance(layer, (Detect, IDetect, IAuxDetect, IBin, IKeypoint)):
+            save_layers.add(i)
+    # 添加所有被其他层引用的层
+    for layer in layers_parsed:
+        if hasattr(layer, 'f') and layer.f != -1:
+            if isinstance(layer.f, int):
+                save_layers.add(layer.f)
+            elif isinstance(layer.f, list):
+                for f in layer.f:
+                    if f != -1:
+                        save_layers.add(f)
+    return nn.Sequential(*layers_parsed), sorted(list(save_layers))
 
 
 if __name__ == '__main__':
