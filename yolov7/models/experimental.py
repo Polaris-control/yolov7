@@ -2,6 +2,10 @@ import numpy as np
 import random
 import torch
 import torch.nn as nn
+import torch.serialization
+
+# PyTorch 2.6+ 兼容性：允许反序列化 numpy 对象
+torch.serialization.add_safe_globals(['numpy._core.multiarray._reconstruct'])
 
 from models.common import Conv, DWConv
 from utils.google_utils import attempt_download
@@ -249,7 +253,12 @@ def attempt_load(weights, map_location=None):
     model = Ensemble()
     for w in weights if isinstance(weights, list) else [weights]:
         attempt_download(w)
-        ckpt = torch.load(w, map_location=map_location)  # load
+        # PyTorch 2.6+ 兼容性：使用 weights_only=False 来兼容旧版本权重文件
+        try:
+            ckpt = torch.load(w, map_location=map_location, weights_only=False)  # load
+        except Exception as e:
+            # 如果 weights_only=False 失败，尝试 weights_only=True
+            ckpt = torch.load(w, map_location=map_location, weights_only=True)  # load
         model.append(ckpt['ema' if ckpt.get('ema') else 'model'].float().fuse().eval())  # FP32 model
     
     # Compatibility updates
