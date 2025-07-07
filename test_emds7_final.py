@@ -22,8 +22,9 @@ yolov7_path = os.path.join(current_dir, 'yolov7')
 if yolov7_path not in sys.path:
     sys.path.insert(0, yolov7_path)
 
-# 修正为 numpy.core.multiarray._reconstruct 以兼容 numpy 1.24.4
-torch.serialization.add_safe_globals([numpy.core.multiarray._reconstruct])
+# PyTorch 2.6+ 兼容性：允许反序列化 numpy 对象
+import torch.serialization
+torch.serialization.add_safe_globals(['numpy._core.multiarray._reconstruct'])
 
 def test_dataset_config():
     """测试数据集配置文件"""
