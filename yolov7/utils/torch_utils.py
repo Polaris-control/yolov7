@@ -372,3 +372,16 @@ class TracedModel(nn.Module):
         out = self.model(x)
         out = self.detect_layer(out)
         return out
+
+def de_parallel(model):
+    # Unwraps model from DataParallel or DistributedDataParallel
+    return model.module if hasattr(model, 'module') else model
+
+def attempt_load(weights, map_location=None, inplace=True, fuse=True):
+    # Simplified version: just load the model
+    ckpt = torch.load(weights, map_location=map_location)
+    if isinstance(ckpt, dict) and 'model' in ckpt:
+        model = ckpt['model']
+    else:
+        model = ckpt
+    return model
