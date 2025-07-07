@@ -2073,3 +2073,33 @@ class DSConv(nn.Module):
         x = self.bn(x)
         x = self.act(x)
         return x
+
+class C3(nn.Module):
+    # CSP Bottleneck with 3 convolutions
+    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):
+        super(C3, self).__init__()
+        c_ = int(c2 * e)  # hidden channels
+        self.cv1 = Conv(c1, c_, 1, 1)
+        self.cv2 = Conv(c1, c_, 1, 1)
+        self.cv3 = Conv(2 * c_, c2, 1)  # final conv
+        self.m = nn.Sequential(*[Bottleneck(c_, c_, shortcut, g, e=1.0) for _ in range(n)])
+
+    def forward(self, x):
+        return self.cv3(torch.cat((self.m(self.cv1(x)), self.cv2(x)), 1))
+
+class GhostBottleneck(nn.Module):
+    def __init__(self, c1, c2, k, s):
+        super().__init__()
+        c_ = c2 // 2
+        self.conv = nn.Sequential(
+            GhostConv(c1, c_, 1, 1),
+            DWConv(c_, c_, k, s, act=False) if s == 2 else nn.Identity(),
+            GhostConv(c_, c2, 1, 1, act=False)
+        )
+        self.shortcut = nn.Sequential(
+            DWConv(c1, c1, k, s, act=False),
+            Conv(c1, c2, 1, 1, act=False)
+        ) if s == 2 else nn.Identity()
+
+    def forward(self, x):
+        return self.conv(x) + self.shortcut(x)
