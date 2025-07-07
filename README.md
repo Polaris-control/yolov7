@@ -179,47 +179,7 @@ EMDS7_min 数据集测试结果
   - `test_batch0_pred.jpg` - 预测结果可视化
   - `labels/` - 预测标签文件 (如果使用 --save-txt)
 
-## 常见问题
 
-### 1. 模块导入错误
-**问题**: `ModuleNotFoundError: No module named 'models'`
-**解决**: 确保在项目根目录运行脚本，或检查 `sys.path.append('yolov7')` 是否正确
 
-### 2. 数据集路径错误
-**问题**: 找不到数据集文件
-**解决**: 检查 `yolov7/data/emds7_min.yaml` 中的路径是否正确
 
-### 3. 模型权重不存在
-**问题**: 找不到权重文件
-**解决**: 确保权重文件存在，或先训练模型
-
-### 4. CUDA内存不足
-**问题**: `RuntimeError: CUDA out of memory`
-**解决**: 减小 `--batch-size` 或使用 `--device cpu`
-
-### 5. 图片格式不支持
-**问题**: 无法加载某些图片
-**解决**: 确保图片格式为 jpg, png, jpeg
-
-## 性能优化建议
-
-1. **使用GPU**: 设置 `--device 0` 使用GPU加速
-2. **半精度推理**: 默认启用，可显著减少内存使用
-3. **批量大小**: 根据GPU内存调整 `--batch-size`
-4. **图片尺寸**: 较小的 `--img-size` 可提高速度但可能影响精度
-
-## 模型训练
-
-在测试之前，需要先训练模型：
-
-```bash
-# 训练命令示例
-python yolov7/train.py \
-    --data yolov7/data/emds7_min.yaml \
-    --cfg yolov7/cfg/training/yolov7.yaml \
-    --weights yolov7/weights/yolov7.pt \
-    --batch-size 16 \
-    --epochs 100 \
-    --device 0
-```
 
