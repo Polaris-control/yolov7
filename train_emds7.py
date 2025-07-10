@@ -3,6 +3,8 @@
 """
 YOLOv7 微藻检测训练脚本
 专门针对 EMDS7 数据集优化
+
+改用2023-dataset 测试
 """
 
 import argparse
