@@ -1,18 +1,22 @@
 # EMDS-7 微藻检测数据集配置（仅使用现存 6 类）
 
-train: ./EMDS7_min/images/train
-val: ./EMDS7_min/images/val
-test: ./EMDS7_min/images/test
+#train: ./EMDS7_min/images/train
+#val: ./EMDS7_min/images/val
+#test: ./EMDS7_min/images/test
 
 # 类别数量和名称
+#nc: 6
+#names: [Oscillatoria, Microcystis, sphaerocystis, tribonema, brachionus, Ankistrodesmus]
+
+
+# VisAlgae 2023 微藻检测数据集配置
+
+train: 2023_dataset/train/images
+val: 2023_dataset/test/images
+test: 2023_dataset/test/images
+
 nc: 6
-names:
-  0: Oscillatoria
-  1: Microcystis
-  2: sphaerocystis
-  3: tribonema
-  4: brachionus
-  5: Ankistrodesmus
+names: [Platymonas, Chlorella, "Dunaliella salina", Effrenium, Porphyridium, Haematococcus]
 
 # 数据增强配置
 augment: 
