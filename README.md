@@ -1,8 +1,10 @@
-# EMDS7_min 数据集测试指南
+# 基于改进YOLOv7的微藻轻量级检测方法
 
-## 概述
+## 项目简介
+本项目旨在实现高通量微藻细胞检测，针对小目标、运动模糊、多尺度、复杂背景等实际挑战，基于YOLOv7/YOLOv8等主流目标检测框架，结合轻量化网络（如GhostNet、CBAM）进行算法优化。项目最初基于 EMDS7_min 数据集，后适配了 Vision Meets Algae 2023 (VisAlgae2023) 数据集。
 
-本指南介绍如何测试基于改进YOLOv7的微藻轻量级检测方法项目，包括数据集验证、模型测试和性能评估。
+---
+
 
 ## 项目结构
 
@@ -19,14 +21,39 @@
 │   ├── train.py              # 官方训练脚本
 │   ├── test.py               # 官方测试脚本
 │   └── detect.py             # 推理脚本
-├── EMDS7_min/                # 微藻数据集
-│   ├── images/               # 图片（train/val/test）
-│   └── labels/               # 标签（YOLO格式，train/val/test）
+├── 2023_dataset/                # 微藻数据集
+│   ├── images/               # 图片（train/test）
+│   └── labels/               # 标签（YOLO格式，train/test）
 ├── train_emds7.py            # 定制化训练脚本
 ├── test_emds7_final.py       # 定制化测试脚本
 ├── README.md                 # 项目说明（本文件）
 └── runs/                     # 训练与测试输出
 ```
+
+## 数据集说明
+#### 数据集配置文件示例（yolov7/data/visalgae2023.yaml）
+```yaml
+train: 2023_dataset/train/images
+val: 2023_dataset/test/images
+nc: 6
+names: [Platymonas, Chlorella, "Dunaliella salina", Effrenium, Porphyridium, Haematococcus]
+```
+- **VisAlgae2023**：6类微藻，YOLO格式标注，图片与标签一一对应。
+  - 目录结构示例：
+    ```
+    2023_dataset/
+      ├── train/
+      │   ├── images/
+      │   └── labels/
+      └── test/
+          ├── images/
+          └── labels/
+    ```
+- **标签格式**：每行 `class x_center y_center width height`，均为归一化浮点数。
+- **类别名**：
+  0: Platymonas  1: Chlorella  2: Dunaliella salina  3: Effrenium  4: Porphyridium  5: Haematococcus
+
+---
 
 ## 改进的模型组件
 
@@ -45,127 +72,64 @@
 - 减少计算量和参数数量
 - 位置：`yolov7/models/common.py`
 
-## 测试步骤
 
-### 步骤 1: 环境检查
+## 模型结构
 
-确保安装了必要的依赖：
+以 YOLOv7 为主干，支持 GhostNet、CBAM 等轻量化和注意力机制模块。
+训练脚本（如 train_emds7.py）支持灵活配置模型结构、超参数、数据集路径。
 
+训练流程
+训练流程标准化，支持命令行参数配置，自动保存最优权重（best.pt）和最后权重（last.pt）。
+训练日志、超参数、配置参数均自动保存，便于复现和对比实验。
+训练过程自动生成 loss、mAP、Precision、Recall 等曲线图（results.png），并支持 TensorBoard 可视化。
+
+标签与数据增强检查
+增强了标签检查脚本，确保所有图片和标签一一对应，标签内容无格式错误。
+检查并修正了数据增强、标签格式等潜在问题。
+
+
+
+
+
+#### 训练
 ```bash
-pip install torch torchvision
-pip install opencv-python
-pip install pyyaml
-pip install tqdm
-pip install matplotlib
-pip install seaborn
+python yolov7/train.py --data yolov7/data/visalgae2023.yaml --cfg yolov7/cfg/training/yolov7.yaml --weights '' --device 0
 ```
 
-### 步骤 2: 基础测试
-
-运行简化测试脚本验证基本配置：
-
+#### 测试
 ```bash
-python test_emds7_simple.py
+python yolov7/test.py --data yolov7/data/visalgae2023.yaml --weights runs/train/exp/weights/best.pt --device 0
 ```
 
-这个脚本会检查：
-- ✅ 数据集配置文件
-- ✅ 模型模块导入
-- ✅ GhostNetBackbone 功能
-- ✅ CBAM 模块功能
-- ✅ DSConv 模块功能
-- ✅ 数据集加载
-
-### 步骤 3: 完整测试
-
-如果基础测试通过，运行完整测试：
-
+#### 推理
 ```bash
-# 基本测试
-python test_emds7.py --weights yolov7.pt --data yolov7/data/emds7_min.yaml
-
-# 详细测试（显示每个类别结果）
-python test_emds7.py --weights yolov7.pt --data yolov7/data/emds7_min.yaml --verbose
-
-# 保存预测结果
-python test_emds7.py --weights yolov7.pt --data yolov7/data/emds7_min.yaml --save-txt
-
-# 自定义参数
-python test_emds7.py \
-    --weights yolov7.pt \
-    --data yolov7/data/emds7_min.yaml \
-    --batch-size 8 \
-    --img-size 640 \
-    --conf-thres 0.25 \
-    --iou-thres 0.45 \
-    --device 0 \
-    --save-dir runs/test_emds7_custom
+python yolov7/detect.py --weights runs/train/exp/weights/best.pt --source 2023_dataset/test/images --img 640 --conf 0.25 --device 0
 ```
 
-## 测试参数说明
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `--weights` | yolov7.pt | 模型权重文件路径 |
-| `--data` | yolov7/data/emds7_min.yaml | 数据集配置文件 |
-| `--batch-size` | 16 | 批次大小 |
-| `--img-size` | 640 | 输入图片尺寸 |
-| `--conf-thres` | 0.25 | 置信度阈值 |
-| `--iou-thres` | 0.45 | NMS IOU阈值 |
-| `--device` | 0 | 设备选择 (0,1,2,3 或 cpu) |
-| `--save-txt` | False | 保存预测结果到txt文件 |
-| `--save-conf` | False | 保存置信度 |
-| `--verbose` | False | 详细输出每个类别结果 |
-| `--trace` | False | 使用TorchScript追踪模型 |
-| `--half` | True | 使用半精度推理 |
+##训练与评估结果
+最新训练结果（2025-07-10）
+训练集：700张图片，测试集：300张图片，6个类别。
+训练50个epoch，模型成功收敛，权重文件已保存。
+验证集评估结果（部分指标）
 
-## 数据集信息
+     Class      Images      Labels           P           R      mAP@.5  mAP@.5:.95
+     all         300        1627       0.505       0.242       0.198       0.091
 
-### EMDS7_min 数据集
-- **类别数量**: 6
-- **类别名称**: 
-  - 0: Oscillatoria (颤藻)
-  - 1: Microcystis (微囊藻)
-  - 2: sphaerocystis (球囊藻)
-  - 3: tribonema (黄丝藻)
-  - 4: brachionus (臂尾轮虫)
-  - 5: Ankistrodesmus (纤维藻)
+    结果文件说明
+    results.png：训练过程曲线图。
+    results.txt：每个epoch详细指标。
+    train_batch*.jpg：训练样本可视化。
+    weights/best.pt：最优模型权重。
+    opt.yaml/hyp.yaml：本次实验参数与超参数。
 
-### 数据集结构
-```
-EMDS7_min/
-├── images/
-│   ├── train/     # 训练图片
-│   ├── val/       # 验证图片
-│   └── test/      # 测试图片
-└── labels/
-    ├── train/     # 训练标签 (YOLO格式)
-    ├── val/       # 验证标签
-    └── test/      # 测试标签
-```
 
-### 标签格式
-YOLO格式：`class_id x_center y_center width height`
-- 所有值都是相对于图片尺寸的归一化值 (0-1)
-- 每行一个目标
+## 结果分析
+- 训练日志、loss/mAP曲线：`runs/train/exp*/results.png`
+- 最优模型权重：`runs/train/exp*/weights/best.pt`
+- 详细指标：`runs/train/exp*/results.txt`
 
-## 预期输出
 
-### 测试结果示例
-```
-EMDS7_min 数据集测试结果
-================================================================================
-                Class     Images     Labels          P          R     mAP@.5 mAP@.5:.95
-                   all        225        450      0.856      0.823      0.847      0.456
-
-各类别详细结果:
---------------------------------------------------------------------------------
-          Oscillatoria        225         75      0.892      0.867      0.891      0.523
-           Microcystis        225        150      0.845      0.813      0.834      0.445
-        sphaerocystis        225         50      0.823      0.780      0.812      0.423
-           tribonema        225         50      0.867      0.840      0.856      0.478
-          brachionus        225         75      0.834      0.800      0.825      0.432
-       Ankistrodesmus        225         50      0.856      0.820      0.843      0.456
 
 
 
