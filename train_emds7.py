@@ -454,7 +454,7 @@ def train(hyp, opt, device, tb_writer=None):
         
         # Log final results
         logger.info(f'Results saved to {save_dir}')
-        logger.info(f'Best mAP: {best_fitness:.4f}')
+        logger.info(f'Best mAP: {float(best_fitness):.4f}')
     
     torch.cuda.empty_cache()
     return results
@@ -506,7 +506,7 @@ if __name__ == '__main__':
     parser.add_argument('--save_period', type=int, default=-1, help='每 "save_period" 轮记录模型')
     parser.add_argument('--freeze', nargs='+', type=int, default=[0], help='冻结层：yolov7 backbone=50, first3=0 1 2')
     parser.add_argument('--v5-metric', action='store_true', help='在 AP 计算中假设最大召回率为 1.0')
-    parser.add_argument('--epochs', type=int, default=5, help='训练轮数')
+    parser.add_argument('--epochs', type=int, default=50, help='训练轮数')
     opt = parser.parse_args()
 
     # 设置日志
